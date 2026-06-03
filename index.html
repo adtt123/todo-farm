@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo Farm</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Todo Farm</p>
+        <h1>Harvest your habits, grow your town</h1>
+      </div>
+      <button id="dayAdvanceBtn" class="pill">Advance one day</button>
+    </header>
+
+    <main class="layout-grid">
+      <section class="panel identity-panel">
+        <div class="player-card">
+          <div class="avatar">🌿</div>
+          <div>
+            <p class="eyebrow">Player</p>
+            <h2>Rae the Gardener</h2>
+            <p class="meta">Quest-driven planner, nature keeper, builder of a happy farm-town.</p>
+          </div>
+        </div>
+
+        <div class="sidebar-widget">
+          <h3>Quick farm snapshot</h3>
+          <div class="stat-row"><span>Farm health</span><strong id="farmHealth">--%</strong></div>
+          <div class="stat-row"><span>Town happiness</span><strong id="townHappiness">--%</strong></div>
+          <div class="stat-row"><span>Tools</span><strong id="toolCount">--</strong></div>
+          <div class="stat-row"><span>Equipment</span><strong id="equipmentCount">--</strong></div>
+        </div>
+
+        <div class="sidebar-widget quest-widget">
+          <h3>Quest overview</h3>
+          <div id="questSummary">Complete tasks to unlock more town upgrades, tools, and happiness.</div>
+        </div>
+      </section>
+
+      <section class="panel kanban-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Kanban</p>
+            <h2>Task board</h2>
+          </div>
+          <button class="pill" id="newTaskBtn">Add task</button>
+        </div>
+
+        <div class="kanban-grid">
+          <div class="kanban-column" data-status="todo">
+            <h3>To do</h3>
+            <div id="todoColumn" class="task-list"></div>
+          </div>
+          <div class="kanban-column" data-status="in-progress">
+            <h3>In progress</h3>
+            <div id="progressColumn" class="task-list"></div>
+          </div>
+          <div class="kanban-column" data-status="done">
+            <h3>Done</h3>
+            <div id="doneColumn" class="task-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel time-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Time blocking</p>
+            <h2>Daily rhythm</h2>
+          </div>
+        </div>
+        <div class="time-block-grid" id="timeBlocks"></div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Map</p>
+            <h2>Farm and town</h2>
+          </div>
+        </div>
+        <div class="map-canvas">
+          <div class="map-card" id="buildingFarm">
+            <span class="map-icon">🌾</span>
+            <div><strong>Farm</strong><small id="farmCount">0 tasks</small></div>
+          </div>
+          <div class="map-card" id="buildingGreenhouse">
+            <span class="map-icon">🌱</span>
+            <div><strong>Greenhouse</strong><small id="greenhouseCount">0 tasks</small></div>
+          </div>
+          <div class="map-card" id="buildingWorkshop">
+            <span class="map-icon">🔧</span>
+            <div><strong>Workshop</strong><small id="workshopCount">0 tasks</small></div>
+          </div>
+          <div class="map-card" id="buildingMarket">
+            <span class="map-icon">🛒</span>
+            <div><strong>Market</strong><small id="marketCount">0 tasks</small></div>
+          </div>
+          <div class="map-card" id="buildingTownHall">
+            <span class="map-icon">🏛️</span>
+            <div><strong>Town Hall</strong><small id="townHallCount">0 tasks</small></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="taskModal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>New task</h2>
+          <button id="closeModal">✕</button>
+        </div>
+        <form id="taskForm">
+          <label>
+            Task title
+            <input type="text" id="taskTitle" placeholder="Feed the saplings" required />
+          </label>
+          <label>
+            Linked building
+            <select id="taskBuilding">
+              <option value="Farm">Farm</option>
+              <option value="Greenhouse">Greenhouse</option>
+              <option value="Workshop">Workshop</option>
+              <option value="Market">Market</option>
+              <option value="Town Hall">Town Hall</option>
+            </select>
+          </label>
+          <label>
+            Time block
+            <select id="taskTime">
+              <option value="08:00">08:00</option>
+              <option value="10:00">10:00</option>
+              <option value="12:00">12:00</option>
+              <option value="14:00">14:00</option>
+              <option value="16:00">16:00</option>
+              <option value="18:00">18:00</option>
+            </select>
+          </label>
+          <label>
+            Description
+            <textarea id="taskDesc" rows="3" placeholder="Plant seeds, water crops, or complete a quest."></textarea>
+          </label>
+          <div class="modal-actions">
+            <button type="submit" class="pill primary">Save task</button>
+            <button type="button" id="cancelModal" class="pill secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
