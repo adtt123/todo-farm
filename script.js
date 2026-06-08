@@ -32,6 +32,10 @@ const elements = {
   workshopCount: document.getElementById('workshopCount'),
   marketCount: document.getElementById('marketCount'),
   townHallCount: document.getElementById('townHallCount'),
+  xpCount: document.getElementById('xpCount'),
+  goldCount: document.getElementById('goldCount'),
+  dayCount: document.getElementById('dayCount'),
+  levelCount: document.getElementById('levelCount'),
   taskModal: document.getElementById('taskModal'),
   taskForm: document.getElementById('taskForm'),
   newTaskBtn: document.getElementById('newTaskBtn'),
@@ -76,13 +80,21 @@ function createTaskCard(task) {
   card.draggable = true;
 
   card.addEventListener('dragstart', (event) => {
+    card.classList.add('dragging');
     event.dataTransfer.setData('text/plain', task.id);
     event.dataTransfer.effectAllowed = 'move';
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
   });
 
   const title = document.createElement('h3');
   title.className = 'task-title';
   title.textContent = task.title;
+
+  const badge = document.createElement('div');
+  badge.className = 'task-badge';
+  badge.textContent = task.building;
 
   const meta = document.createElement('div');
   meta.className = 'task-meta';
@@ -107,7 +119,7 @@ function createTaskCard(task) {
   resetButton.addEventListener('click', () => resetTask(task.id));
 
   actions.append(nextButton, resetButton);
-  card.append(title, meta, desc, actions);
+  card.append(badge, title, meta, desc, actions);
   return card;
 }
 
@@ -208,6 +220,10 @@ function renderStats() {
   elements.townHappiness.textContent = `${stats.townHappiness}%`;
   elements.toolCount.textContent = `${stats.tools}`;
   elements.equipmentCount.textContent = `${stats.equipment}`;
+  elements.xpCount.textContent = state.xp;
+  elements.goldCount.textContent = state.coins;
+  elements.dayCount.textContent = state.day;
+  elements.levelCount.textContent = stats.nextLevel;
 
   const summary = [];
   summary.push(`Day ${state.day}: Harvest health is ${stats.farmHealth}%.`);
