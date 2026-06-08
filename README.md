@@ -1,4 +1,4 @@
-# todo-farm
+# Sowl: A medieval to-do list web application
 
 A prototype web app for a gamified task manager with a farm-town theme. It combines:
 
