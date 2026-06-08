@@ -6,6 +6,8 @@ const state = {
   xp: 0,
   coins: 6,
   selectedBuilding: null,
+  character: '🛡️',
+  characterName: 'Brave Knight',
 };
 
 const timeSlots = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
@@ -27,11 +29,6 @@ const elements = {
   toolCount: document.getElementById('toolCount'),
   equipmentCount: document.getElementById('equipmentCount'),
   questSummary: document.getElementById('questSummary'),
-  farmCount: document.getElementById('farmCount'),
-  greenhouseCount: document.getElementById('greenhouseCount'),
-  workshopCount: document.getElementById('workshopCount'),
-  marketCount: document.getElementById('marketCount'),
-  townHallCount: document.getElementById('townHallCount'),
   xpCount: document.getElementById('xpCount'),
   goldCount: document.getElementById('goldCount'),
   dayCount: document.getElementById('dayCount'),
@@ -43,6 +40,13 @@ const elements = {
   closeModal: document.getElementById('closeModal'),
   cancelModal: document.getElementById('cancelModal'),
   dayAdvanceBtn: document.getElementById('dayAdvanceBtn'),
+  changeCharBtn: document.getElementById('changeCharBtn'),
+  characterModal: document.getElementById('characterModal'),
+  closeCharModal: document.getElementById('closeCharModal'),
+  charNameInput: document.getElementById('charNameInput'),
+  confirmCharBtn: document.getElementById('confirmCharBtn'),
+  playerAvatar: document.getElementById('playerAvatar'),
+  playerName: document.getElementById('playerName'),
   mapCards: {
     Farm: document.getElementById('buildingFarm'),
     Greenhouse: document.getElementById('buildingGreenhouse'),
@@ -55,12 +59,23 @@ const elements = {
 async function loadState() {
   await todoFarmDb.open();
   state.tasks = await todoFarmDb.getAllTasks();
+  
   const savedMeta = await todoFarmDb.getMeta('appState');
   if (savedMeta) {
     state.day = savedMeta.day || state.day;
     state.xp = savedMeta.xp || state.xp;
     state.coins = savedMeta.coins || state.coins;
     state.selectedBuilding = savedMeta.selectedBuilding || null;
+  }
+  
+  const savedCharacter = await todoFarmDb.getMeta('character');
+  if (savedCharacter) {
+    state.character = savedCharacter;
+  }
+  
+  const savedCharacterName = await todoFarmDb.getMeta('characterName');
+  if (savedCharacterName) {
+    state.characterName = savedCharacterName;
   }
 }
 
@@ -72,6 +87,8 @@ async function saveState() {
     coins: state.coins,
     selectedBuilding: state.selectedBuilding,
   });
+  await todoFarmDb.saveMeta('character', state.character);
+  await todoFarmDb.saveMeta('characterName', state.characterName);
 }
 
 function createTaskCard(task) {
@@ -89,13 +106,13 @@ function createTaskCard(task) {
     card.classList.remove('dragging');
   });
 
-  const title = document.createElement('h3');
-  title.className = 'task-title';
-  title.textContent = task.title;
-
   const badge = document.createElement('div');
   badge.className = 'task-badge';
   badge.textContent = task.building;
+
+  const title = document.createElement('h3');
+  title.className = 'task-title';
+  title.textContent = task.title;
 
   const meta = document.createElement('div');
   meta.className = 'task-meta';
@@ -104,7 +121,7 @@ function createTaskCard(task) {
 
   const desc = document.createElement('p');
   desc.style.margin = '0.5rem 0 0';
-  desc.style.color = '#4b5563';
+  desc.style.color = '#c9b89a';
   desc.textContent = task.description || 'No description yet.';
 
   const actions = document.createElement('div');
@@ -149,296 +166,369 @@ async function updateTaskStatus(id, status) {
   if (status === 'todo') {
     task.daysOverdue = 0;
   }
-  await saveState();
-  renderApp();
+  renderBoard();
+  renderStats();
+  renderQuestBars();
+  renderTimeBlocks();
+  saveState();
 }
 
-async function deleteTask(id) {
-  state.tasks = state.tasks.filter((entry) => entry.id !== id);
-  await saveState();
-  renderApp();
-}
-
-function taskFilter(task) {
-  return !state.selectedBuilding || task.building === state.selectedBuilding;
+function deleteTask(id) {
+  if (confirm('Delete this quest?')) {
+    state.tasks = state.tasks.filter((t) => t.id !== id);
+    renderBoard();
+    renderQuestBars();
+    renderTimeBlocks();
+    saveState();
+  }
 }
 
 function renderBoard() {
   elements.todoColumn.innerHTML = '';
   elements.progressColumn.innerHTML = '';
   elements.doneColumn.innerHTML = '';
-
-  const stacks = {
-    todo: elements.todoColumn,
-    'in-progress': elements.progressColumn,
-    done: elements.doneColumn,
-  };
-
-  state.tasks.filter(taskFilter).forEach((task) => {
-    const card = createTaskCard(task);
-    stacks[task.status].appendChild(card);
-  });
+  state.tasks
+    .filter(
+      (task) => !state.selectedBuilding || task.building === state.selectedBuilding
+    )
+    .forEach((task) => {
+      const card = createTaskCard(task);
+      if (task.status === 'todo') {
+        elements.todoColumn.appendChild(card);
+      } else if (task.status === 'in-progress') {
+        elements.progressColumn.appendChild(card);
+      } else {
+        elements.doneColumn.appendChild(card);
+      }
+    });
+  bindDragAndDrop();
 }
 
 function renderTimeBlocks() {
   elements.timeBlocks.innerHTML = '';
-  timeSlots.forEach((slot) => {
+  timeSlots.forEach((time) => {
     const block = document.createElement('div');
     block.className = 'time-block';
-    const title = document.createElement('h4');
-    title.textContent = slot;
-    const scheduled = state.tasks.filter((task) => task.time === slot && task.status !== 'done');
-    const totalSlots = 4;
-    const fillPercent = Math.min(100, (scheduled.length / totalSlots) * 100);
-
-    const progress = document.createElement('div');
-    progress.className = 'time-progress';
-    const fill = document.createElement('span');
-    fill.style.width = `${fillPercent}%`;
-    fill.style.background = scheduled.length ? 'linear-gradient(90deg, #a855f7 0%, #fb7185 100%)' : 'transparent';
-    progress.appendChild(fill);
-
-    block.append(title, progress);
+    block.innerHTML = `<h4>${time}</h4>`;
+    const tasksInSlot = state.tasks.filter((t) => t.time === time);
+    const completed = tasksInSlot.filter((t) => t.status === 'done').length;
+    const inProgress = tasksInSlot.filter((t) => t.status === 'in-progress').length;
+    const total = tasksInSlot.length || 1;
+    const completedPercent = (completed / total) * 100;
+    const inProgressPercent = ((completed + inProgress) / total) * 100;
+    
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'time-progress';
+    
+    // Create span for completed tasks
+    const completedSpan = document.createElement('span');
+    completedSpan.style.width = completedPercent + '%';
+    completedSpan.style.background = 'linear-gradient(90deg, #10b981 0%, #34d399 100%)';
+    
+    // Create span for in-progress tasks
+    const inProgressSpan = document.createElement('span');
+    inProgressSpan.style.width = (inProgressPercent - completedPercent) + '%';
+    inProgressSpan.style.background = 'linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%)';
+    inProgressSpan.style.opacity = '0.7';
+    
+    progressDiv.appendChild(completedSpan);
+    progressDiv.appendChild(inProgressSpan);
+    
+    // Add task list below progress
+    if (tasksInSlot.length > 0) {
+      const taskList = document.createElement('div');
+      taskList.style.fontSize = '0.7rem';
+      taskList.style.marginTop = '6px';
+      taskList.style.lineHeight = '1.2';
+      taskList.style.maxHeight = '40px';
+      taskList.style.overflow = 'hidden';
+      taskList.style.color = '#a68b6e';
+      
+      tasksInSlot.forEach((task) => {
+        const taskItem = document.createElement('div');
+        taskItem.style.padding = '2px 4px';
+        taskItem.style.borderRadius = '3px';
+        taskItem.style.marginBottom = '2px';
+        
+        const statusIcon = task.status === 'done' ? '✓' : task.status === 'in-progress' ? '→' : '○';
+        const statusColor = task.status === 'done' ? '#10b981' : task.status === 'in-progress' ? '#3b82f6' : '#8b7355';
+        
+        taskItem.innerHTML = `<span style="color: ${statusColor}">${statusIcon}</span> ${task.title.substring(0, 12)}`;
+        taskList.appendChild(taskItem);
+      });
+      
+      block.appendChild(progressDiv);
+      block.appendChild(taskList);
+    } else {
+      block.appendChild(progressDiv);
+    }
+    
     elements.timeBlocks.appendChild(block);
   });
 }
 
-function renderMap() {
-  const counts = {
-    Farm: 0,
-    Greenhouse: 0,
-    Workshop: 0,
-    Market: 0,
-    'Town Hall': 0,
-  };
-
-  state.tasks.forEach((task) => {
-    if (task.status !== 'done') counts[task.building] = (counts[task.building] || 0) + 1;
-  });
-
-  elements.farmCount.textContent = `${counts.Farm} tasks`;
-  elements.greenhouseCount.textContent = `${counts.Greenhouse} tasks`;
-  elements.workshopCount.textContent = `${counts.Workshop} tasks`;
-  elements.marketCount.textContent = `${counts.Market} tasks`;
-  elements.townHallCount.textContent = `${counts['Town Hall']} tasks`;
-
-  Object.entries(elements.mapCards).forEach(([building, card]) => {
-    card.classList.toggle('active-map-card', state.selectedBuilding === building);
-    card.querySelector('strong').textContent = building;
-    card.querySelector('small').textContent = `${counts[building]} tasks`;
-  });
-}
-
-function getStats() {
-  const completed = state.tasks.filter((task) => task.status === 'done').length;
-  const overdue = state.tasks.filter((task) => task.status !== 'done' && task.daysOverdue > 0).length;
-  const total = state.tasks.length;
-  const farmHealth = Math.max(20, Math.min(100, 90 + completed * 2 - overdue * 8));
-  const townHappiness = Math.max(20, Math.min(100, 55 + completed * 3 - overdue * 5));
-  const tools = Math.max(1, Math.floor(townHappiness / 20));
-  const equipment = Math.max(1, Math.floor(completed / 2) + tools);
-  const nextLevel = Math.max(1, Math.floor((completed * 15 + state.xp) / 100) + 1);
-  return { farmHealth, townHappiness, tools, equipment, completed, overdue, total, nextLevel };
-}
-
 function renderStats() {
-  const stats = getStats();
-  elements.farmHealth.textContent = `${stats.farmHealth}%`;
-  elements.townHappiness.textContent = `${stats.townHappiness}%`;
-  elements.toolCount.textContent = `${stats.tools}`;
-  elements.equipmentCount.textContent = `${stats.equipment}`;
+  const level = Math.floor(state.xp / 100) + 1;
+  const taskTotal = state.tasks.length || 1;
+  const taskDone = state.tasks.filter((t) => t.status === 'done').length;
+  const farmTasks = state.tasks.filter((t) => t.building === 'Farm');
+  const farmDone = farmTasks.filter((t) => t.status === 'done').length;
+  const farmHealth = ((farmDone / (farmTasks.length || 1)) * 100).toFixed(0);
+  const townHappiness = ((taskDone / taskTotal) * 100).toFixed(0);
   elements.xpCount.textContent = state.xp;
   elements.goldCount.textContent = state.coins;
   elements.dayCount.textContent = state.day;
-  elements.levelCount.textContent = stats.nextLevel;
-
-  const summary = [];
-  summary.push(`Day ${state.day}: Harvest health is ${stats.farmHealth}%.`);
-  summary.push(`Town morale is ${stats.townHappiness}%.`);
-  summary.push(`Current level: ${stats.nextLevel}.`);
-  summary.push(`${stats.completed}/${stats.total} tasks completed, ${stats.overdue} overdue quests.`);
-
-  if (stats.total === 0) {
-    summary.push('Add your first quest to start growing the town.');
-  }
-
-  elements.questSummary.textContent = summary.join(' ');
+  elements.levelCount.textContent = level;
+  elements.farmHealth.textContent = `${farmHealth}%`;
+  elements.townHappiness.textContent = `${townHappiness}%`;
+  elements.toolCount.textContent = Math.floor(state.coins / 5);
+  elements.equipmentCount.textContent = Math.floor(state.xp / 50);
 }
 
 function getQuestGroups() {
-  const categories = ['Farm', 'Greenhouse', 'Workshop', 'Market', 'Town Hall'];
-  return categories.map((building) => {
-    const tasks = state.tasks.filter((task) => task.building === building);
-    const completed = tasks.filter((task) => task.status === 'done').length;
-    return {
-      building,
-      total: tasks.length,
-      completed,
-      progress: tasks.length ? completed / tasks.length : 0,
-    };
+  const groups = {};
+  state.tasks.forEach((task) => {
+    if (!groups[task.building]) {
+      groups[task.building] = { total: 0, done: 0 };
+    }
+    groups[task.building].total++;
+    if (task.status === 'done') {
+      groups[task.building].done++;
+    }
   });
+  return groups;
 }
 
 function renderQuestBars() {
   elements.questBars.innerHTML = '';
   const groups = getQuestGroups();
-  groups.forEach((group) => {
-    const bar = document.createElement('button');
-    bar.type = 'button';
-    bar.className = 'quest-bar';
-    if (state.selectedBuilding === group.building) bar.classList.add('active');
-    bar.addEventListener('click', () => setSelectedBuilding(group.building));
-
-    const header = document.createElement('strong');
-    header.innerHTML = `${group.building} <span>${group.completed}/${group.total}</span>`;
-
-    const label = document.createElement('div');
-    label.textContent = group.total ? `${Math.round(group.progress * 100)}% complete` : 'No quests yet';
-    label.style.color = '#5b21b6';
-    label.style.fontSize = '0.92rem';
-
-    const track = document.createElement('div');
-    track.className = 'quest-progress';
-    const fill = document.createElement('span');
-    fill.style.width = `${group.total ? group.progress * 100 : 10}%`;
-    track.appendChild(fill);
-
-    bar.append(header, label, track);
+  Object.entries(groups).forEach(([building, counts]) => {
+    const bar = document.createElement('div');
+    bar.className = `quest-bar ${state.selectedBuilding === building ? 'active' : ''}`;
+    bar.addEventListener('click', () => setSelectedBuilding(building));
+    const progress = (counts.done / (counts.total || 1)) * 100;
+    bar.innerHTML = `
+      <strong>${buildingIcons[building] || ''} ${building} <span>${counts.done}/${counts.total}</span></strong>
+      <div class="quest-progress"><span style="width: ${progress}%"></span></div>
+    `;
     elements.questBars.appendChild(bar);
   });
+  updateQuestSummary();
 }
 
-async function moveTaskForward(id) {
-  const task = state.tasks.find((entry) => entry.id === id);
-  if (!task) return;
-
-  if (task.status === 'todo') task.status = 'in-progress';
-  else if (task.status === 'in-progress') {
-    task.status = 'done';
-    state.xp += 10;
-    state.coins += 2;
-  } else if (task.status === 'done') {
-    task.status = 'done';
+function updateQuestSummary() {
+  if (state.selectedBuilding) {
+    const building = state.selectedBuilding;
+    const tasks = state.tasks.filter((t) => t.building === building);
+    const done = tasks.filter((t) => t.status === 'done').length;
+    const total = tasks.length;
+    elements.questSummary.textContent = `${building}: ${done}/${total} complete`;
+  } else {
+    elements.questSummary.textContent = '';
   }
-
-  await saveState();
-  renderApp();
 }
 
-async function resetTask(id) {
-  const task = state.tasks.find((entry) => entry.id === id);
-  if (!task) return;
-  task.status = 'todo';
-  task.daysOverdue = 0;
-  await saveState();
-  renderApp();
-}
-
-function showModal() {
-  elements.taskModal.classList.remove('hidden');
-}
-
-function hideModal() {
-  elements.taskModal.classList.add('hidden');
-  elements.taskForm.reset();
-}
-
-async function addTaskFromForm(event) {
-  event.preventDefault();
-  const title = document.getElementById('taskTitle').value.trim();
-  const building = document.getElementById('taskBuilding').value;
-  const time = document.getElementById('taskTime').value;
-  const description = document.getElementById('taskDesc').value.trim();
-
-  if (!title) return;
-  const newTask = {
-    id: crypto.randomUUID(),
-    title,
-    building,
-    time,
-    description,
-    status: 'todo',
-    createdDay: state.day,
-    daysOverdue: 0,
-  };
-
-  state.tasks.push(newTask);
-  await saveState();
-  renderApp();
-  hideModal();
-}
-
-async function advanceDay() {
-  state.day += 1;
-  state.tasks.forEach((task) => {
-    if (task.status !== 'done') {
-      task.daysOverdue += 1;
+function renderMap() {
+  const groups = getQuestGroups();
+  Object.entries(elements.mapCards).forEach(([building, element]) => {
+    if (element) {
+      const count = groups[building] ? groups[building].total : 0;
+      element.classList.toggle('active-map-card', state.selectedBuilding === building);
+      
+      // Update status indicator based on completion percentage
+      const buildingData = groups[building];
+      if (buildingData && buildingData.total > 0) {
+        const completionPercent = (buildingData.done / buildingData.total) * 100;
+        
+        // Remove all status classes
+        element.classList.remove('status-good', 'status-normal', 'status-bad');
+        
+        // Add appropriate status class
+        if (completionPercent === 100) {
+          element.classList.add('status-good');
+        } else if (completionPercent >= 50) {
+          element.classList.add('status-normal');
+        } else if (completionPercent > 0) {
+          element.classList.add('status-normal');
+        } else {
+          element.classList.add('status-bad');
+        }
+      }
     }
   });
-  await saveState();
-  renderApp();
 }
 
-async function setSelectedBuilding(building) {
-  state.selectedBuilding = state.selectedBuilding === building ? null : building;
-  await saveState();
-  renderApp();
-}
-
-function bindMapInteractions() {
-  Object.entries(elements.mapCards).forEach(([building, card]) => {
-    card.addEventListener('click', () => setSelectedBuilding(building));
-  });
+function setSelectedBuilding(building) {
+  if (state.selectedBuilding === building) {
+    state.selectedBuilding = null;
+  } else {
+    state.selectedBuilding = building;
+  }
+  renderBoard();
+  renderQuestBars();
+  renderMap();
+  saveState();
 }
 
 function bindDragAndDrop() {
-  const columns = document.querySelectorAll('.kanban-column');
-  columns.forEach((column) => {
-    column.addEventListener('dragover', (event) => {
+  const columns = document.querySelectorAll('.task-list');
+  columns.forEach((col) => {
+    col.addEventListener('dragover', (event) => {
       event.preventDefault();
-      column.classList.add('drag-over');
+      col.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
     });
-    column.addEventListener('dragleave', () => {
-      column.classList.remove('drag-over');
+    col.addEventListener('dragleave', () => {
+      col.style.backgroundColor = '';
     });
-    column.addEventListener('drop', async (event) => {
+    col.addEventListener('drop', (event) => {
       event.preventDefault();
-      column.classList.remove('drag-over');
+      col.style.backgroundColor = '';
       const taskId = event.dataTransfer.getData('text/plain');
-      const targetStatus = column.dataset.status;
-      const task = state.tasks.find((entry) => entry.id === taskId);
-      if (task && task.status !== targetStatus) {
-        task.status = targetStatus;
-        if (targetStatus === 'done') {
-          state.xp += 10;
-          state.coins += 2;
-        }
-        await saveState();
-        renderApp();
-      }
+      const newStatus = col.parentElement.dataset.status;
+      updateTaskStatus(taskId, newStatus);
     });
   });
 }
 
-async function renderApp() {
-  renderBoard();
-  renderTimeBlocks();
-  renderMap();
-  renderStats();
-  renderQuestBars();
+function openCharacterModal() {
+  elements.characterModal.classList.remove('hidden');
+  elements.charNameInput.value = state.characterName;
+}
+
+function closeCharacterModal() {
+  elements.characterModal.classList.add('hidden');
+}
+
+function selectCharacter(char, name) {
+  const selected = document.querySelector('.char-option[data-char="' + char + '"]');
+  if (selected) {
+    selected.style.borderColor = '#ffd700';
+    selected.style.boxShadow = '0 0 12px rgba(255, 215, 0, 0.5)';
+  }
+}
+
+async function confirmCharacter() {
+  const charOptions = document.querySelectorAll('.char-option');
+  let selectedChar = null;
+  let selectedName = null;
+  
+  for (const option of charOptions) {
+    const style = window.getComputedStyle(option);
+    if (style.borderColor.includes('rgb(255, 215, 0)')) {
+      selectedChar = option.dataset.char;
+      selectedName = option.dataset.name;
+      break;
+    }
+  }
+  
+  if (!selectedChar) {
+    alert('Please select a character');
+    return;
+  }
+  
+  const customName = elements.charNameInput.value.trim();
+  if (!customName) {
+    alert('Please enter your name');
+    return;
+  }
+  
+  state.character = selectedChar;
+  state.characterName = customName;
+  
+  elements.playerAvatar.textContent = selectedChar;
+  elements.playerName.textContent = customName;
+  
+  await saveState();
+  closeCharacterModal();
 }
 
 async function initialize() {
   await loadState();
-  renderApp();
-  bindMapInteractions();
-  bindDragAndDrop();
-
-  elements.newTaskBtn.addEventListener('click', showModal);
-  elements.closeModal.addEventListener('click', hideModal);
-  elements.cancelModal.addEventListener('click', hideModal);
-  elements.taskForm.addEventListener('submit', addTaskFromForm);
-  elements.dayAdvanceBtn.addEventListener('click', advanceDay);
+  
+  elements.playerAvatar.textContent = state.character;
+  elements.playerName.textContent = state.characterName;
+  
+  renderBoard();
+  renderTimeBlocks();
+  renderStats();
+  renderQuestBars();
+  renderMap();
+  
+  // Character modal handlers
+  elements.changeCharBtn.addEventListener('click', openCharacterModal);
+  elements.closeCharModal.addEventListener('click', closeCharacterModal);
+  
+  const charOptions = document.querySelectorAll('.char-option');
+  charOptions.forEach((option) => {
+    option.addEventListener('click', () => {
+      charOptions.forEach((o) => o.style.borderColor = '#8d6e63');
+      charOptions.forEach((o) => o.style.boxShadow = 'none');
+      selectCharacter(option.dataset.char, option.dataset.name);
+    });
+  });
+  
+  elements.confirmCharBtn.addEventListener('click', confirmCharacter);
+  
+  // Modal handlers
+  elements.newTaskBtn.addEventListener('click', () => {
+    elements.taskModal.classList.remove('hidden');
+  });
+  elements.closeModal.addEventListener('click', () => {
+    elements.taskModal.classList.add('hidden');
+  });
+  elements.cancelModal.addEventListener('click', () => {
+    elements.taskModal.classList.add('hidden');
+  });
+  
+  elements.taskForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('taskTitle').value;
+    const building = document.getElementById('taskBuilding').value;
+    const time = document.getElementById('taskTime').value;
+    const description = document.getElementById('taskDesc').value;
+    
+    const task = {
+      id: Date.now().toString(),
+      title,
+      building,
+      time,
+      description,
+      status: 'todo',
+      createdDay: state.day,
+      daysOverdue: 0,
+    };
+    
+    state.tasks.push(task);
+    await saveState();
+    renderBoard();
+    renderQuestBars();
+    renderTimeBlocks();
+    elements.taskForm.reset();
+    elements.taskModal.classList.add('hidden');
+  });
+  
+  elements.dayAdvanceBtn.addEventListener('click', async () => {
+    state.day++;
+    state.tasks.forEach((task) => {
+      if (task.status !== 'done') {
+        task.daysOverdue++;
+      } else {
+        task.daysOverdue = 0;
+      }
+    });
+    await saveState();
+    renderBoard();
+    renderStats();
+  });
+  
+  Object.values(elements.mapCards).forEach((building) => {
+    if (building) {
+      building.addEventListener('click', (e) => {
+        const buildingName = e.currentTarget.dataset.building;
+        setSelectedBuilding(buildingName);
+      });
+    }
+  });
 }
 
 initialize();
