@@ -439,33 +439,39 @@ button, input, select, textarea {
 }
 
 .time-block {
-  border-radius: 20px;
+  border-radius: 24px;
   padding: 16px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 243, 255, 0.98) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+  min-height: 96px;
+  display: grid;
+  gap: 14px;
 }
 
 .time-block h4 {
-  margin: 0 0 10px;
+  margin: 0;
+  color: #442c9a;
 }
 
-.time-block small {
+.time-progress {
+  width: 100%;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(199, 210, 254, 0.45);
+  overflow: hidden;
+}
+
+.time-progress span {
   display: block;
-  color: #6b7280;
-  margin-bottom: 12px;
-}
-
-.time-block-list {
-  display: grid;
-  gap: 10px;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  transition: width 0.28s ease;
 }
 
 .block-item {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: #f3f4f6;
-  color: #111827;
-  font-size: 0.95rem;
+  display: none;
 }
 
 .map-canvas {
@@ -492,28 +498,28 @@ button, input, select, textarea {
 
 .map-node {
   position: absolute;
-  width: 158px;
-  min-height: 92px;
+  width: 168px;
+  min-height: 112px;
   padding: 16px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.96);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(139, 92, 246, 0.16);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   cursor: pointer;
 }
 
-.map-node span {
-  width: 50px;
-  height: 50px;
-  border-radius: 18px;
-  background: #f8fafc;
-  display: grid;
-  place-items: center;
-  font-size: 1.55rem;
+.map-image {
+  width: 70px;
+  height: 70px;
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.12);
 }
 
 .map-node div {
@@ -542,6 +548,26 @@ button, input, select, textarea {
 .node-workshop { bottom: 114px; left: 26px; }
 .node-market { bottom: 94px; right: 30px; }
 .node-townhall { top: 180px; left: calc(50% - 88px); }
+
+.node-farm .map-image {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23fef3c7'/%3E%3Cpath d='M30 90 L60 40 L90 90 Z' fill='%23ef4444'/%3E%3Crect x='50' y='70' width='20' height='20' fill='%23ffffff'/%3E%3Cpath d='M40 90 H80' stroke='%237f1d1d' stroke-width='4'/%3E%3C/svg%3E");
+}
+
+.node-greenhouse .map-image {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23dcfce7'/%3E%3Cpath d='M30 100 L60 30 L90 100 Z' fill='%232dd4bf'/%3E%3Crect x='43' y='60' width='34' height='30' fill='%23ffffff'/%3E%3Cpath d='M60 60 V30' stroke='%230f766e' stroke-width='4'/%3E%3C/svg%3E");
+}
+
+.node-workshop .map-image {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23ede9fe'/%3E%3Cpath d='M35 85 H85 V60 L60 40 L35 60 Z' fill='%239b5cfc'/%3E%3Ccircle cx='60' cy='70' r='10' fill='%23f8fafc' stroke='%237c3aed' stroke-width='4'/%3E%3C/svg%3E");
+}
+
+.node-market .map-image {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23fef2f2'/%3E%3Cpath d='M30 40 H90 V80 H30 Z' fill='%23fb7185'/%3E%3Cpath d='M30 40 L60 15 L90 40' fill='%23fda4af'/%3E%3Crect x='40' y='60' width='40' height='20' fill='%23ffffff'/%3E%3C/svg%3E");
+}
+
+.node-townhall .map-image {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' fill='%23ede9fe'/%3E%3Cpath d='M30 80 H90 V60 H30 Z' fill='%236d28d9'/%3E%3Cpath d='M35 60 L60 30 L85 60' fill='%23c4b5fd'/%3E%3Cline x1='50' y1='55' x2='50' y2='80' stroke='%23ffffff' stroke-width='4'/%3E%3Cline x1='70' y1='55' x2='70' y2='80' stroke='%23ffffff' stroke-width='4'/%3E%3C/svg%3E");
+}
 
 .map-label {
   position: absolute;

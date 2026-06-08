@@ -187,27 +187,18 @@ function renderTimeBlocks() {
     block.className = 'time-block';
     const title = document.createElement('h4');
     title.textContent = slot;
-    const owner = document.createElement('small');
     const scheduled = state.tasks.filter((task) => task.time === slot && task.status !== 'done');
-    owner.textContent = scheduled.length ? `${scheduled.length} tasks` : 'Free block';
-    const list = document.createElement('div');
-    list.className = 'time-block-list';
+    const totalSlots = 4;
+    const fillPercent = Math.min(100, (scheduled.length / totalSlots) * 100);
 
-    scheduled.slice(0, 3).forEach((task) => {
-      const item = document.createElement('div');
-      item.className = 'block-item';
-      item.textContent = `${buildingIcons[task.building] || '📍'} ${task.title}`;
-      list.appendChild(item);
-    });
+    const progress = document.createElement('div');
+    progress.className = 'time-progress';
+    const fill = document.createElement('span');
+    fill.style.width = `${fillPercent}%`;
+    fill.style.background = scheduled.length ? 'linear-gradient(90deg, #a855f7 0%, #fb7185 100%)' : 'transparent';
+    progress.appendChild(fill);
 
-    if (!scheduled.length) {
-      const empty = document.createElement('div');
-      empty.className = 'block-item';
-      empty.textContent = 'Relax, no focus needed.';
-      list.appendChild(empty);
-    }
-
-    block.append(title, owner, list);
+    block.append(title, progress);
     elements.timeBlocks.appendChild(block);
   });
 }
