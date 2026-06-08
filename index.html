@@ -45,8 +45,10 @@
         </div>
 
         <div class="sidebar-widget quest-widget">
-          <h3>Quest overview</h3>
-          <div id="questSummary">Complete tasks to unlock more town upgrades, tools, and happiness.</div>
+          <h3>Quest progress</h3>
+          <div class="quest-intro">Tap any quest bar to focus its related objectives on the board.</div>
+          <div id="questBars" class="quest-bars"></div>
+          <div id="questSummary" class="quest-summary"></div>
         </div>
       </section>
 
@@ -93,26 +95,29 @@
           </div>
         </div>
         <div class="map-canvas">
-          <div class="map-card" id="buildingFarm">
-            <span class="map-icon">🌾</span>
-            <div><strong>Farm</strong><small id="farmCount">0 tasks</small></div>
+          <div class="map-node node-farm" id="buildingFarm">
+            <span>🌾</span>
+            <div><strong>Farm</strong><small id="farmCount">0 quests</small></div>
           </div>
-          <div class="map-card" id="buildingGreenhouse">
-            <span class="map-icon">🌱</span>
-            <div><strong>Greenhouse</strong><small id="greenhouseCount">0 tasks</small></div>
+          <div class="map-node node-greenhouse" id="buildingGreenhouse">
+            <span>🌱</span>
+            <div><strong>Greenhouse</strong><small id="greenhouseCount">0 quests</small></div>
           </div>
-          <div class="map-card" id="buildingWorkshop">
-            <span class="map-icon">🔧</span>
-            <div><strong>Workshop</strong><small id="workshopCount">0 tasks</small></div>
+          <div class="map-node node-workshop" id="buildingWorkshop">
+            <span>🔧</span>
+            <div><strong>Workshop</strong><small id="workshopCount">0 quests</small></div>
           </div>
-          <div class="map-card" id="buildingMarket">
-            <span class="map-icon">🛒</span>
-            <div><strong>Market</strong><small id="marketCount">0 tasks</small></div>
+          <div class="map-node node-market" id="buildingMarket">
+            <span>🛒</span>
+            <div><strong>Market</strong><small id="marketCount">0 quests</small></div>
           </div>
-          <div class="map-card" id="buildingTownHall">
-            <span class="map-icon">🏛️</span>
-            <div><strong>Town Hall</strong><small id="townHallCount">0 tasks</small></div>
+          <div class="map-node node-townhall" id="buildingTownHall">
+            <span>🏛️</span>
+            <div><strong>Town Hall</strong><small id="townHallCount">0 quests</small></div>
           </div>
+          <div class="map-label map-label-village">Village</div>
+          <div class="map-label map-label-field">Fields</div>
+          <div class="map-label map-label-path">Trade roads</div>
         </div>
       </section>
     </main>

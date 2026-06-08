@@ -36,6 +36,7 @@ const elements = {
   goldCount: document.getElementById('goldCount'),
   dayCount: document.getElementById('dayCount'),
   levelCount: document.getElementById('levelCount'),
+  questBars: document.getElementById('questBars'),
   taskModal: document.getElementById('taskModal'),
   taskForm: document.getElementById('taskForm'),
   newTaskBtn: document.getElementById('newTaskBtn'),
@@ -98,7 +99,8 @@ function createTaskCard(task) {
 
   const meta = document.createElement('div');
   meta.className = 'task-meta';
-  meta.innerHTML = `<span>${buildingIcons[task.building] || '📍'} ${task.building}</span><span>${task.time}</span>`;
+  const overdue = task.daysOverdue > 0 ? ` • ${task.daysOverdue}d late` : '';
+  meta.innerHTML = `<span>${buildingIcons[task.building] || '📍'} ${task.building}${overdue}</span><span>${task.time}</span>`;
 
   const desc = document.createElement('p');
   desc.style.margin = '0.5rem 0 0';
@@ -108,19 +110,53 @@ function createTaskCard(task) {
   const actions = document.createElement('div');
   actions.className = 'task-actions';
 
-  const nextButton = document.createElement('button');
-  nextButton.className = 'task-button';
-  nextButton.textContent = task.status === 'todo' ? 'Start' : task.status === 'in-progress' ? 'Complete' : 'Archive';
-  nextButton.addEventListener('click', () => moveTaskForward(task.id));
+  const primaryButton = document.createElement('button');
+  primaryButton.className = 'task-button';
+  const secondaryButton = document.createElement('button');
+  secondaryButton.className = 'task-button secondary';
 
-  const resetButton = document.createElement('button');
-  resetButton.className = 'task-button secondary';
-  resetButton.textContent = 'Reset';
-  resetButton.addEventListener('click', () => resetTask(task.id));
+  if (task.status === 'todo') {
+    primaryButton.textContent = 'Start';
+    primaryButton.addEventListener('click', () => updateTaskStatus(task.id, 'in-progress'));
+    secondaryButton.textContent = 'Delete';
+    secondaryButton.addEventListener('click', () => deleteTask(task.id));
+  } else if (task.status === 'in-progress') {
+    primaryButton.textContent = 'Complete';
+    primaryButton.addEventListener('click', () => updateTaskStatus(task.id, 'done'));
+    secondaryButton.textContent = 'Back';
+    secondaryButton.addEventListener('click', () => updateTaskStatus(task.id, 'todo'));
+  } else {
+    primaryButton.textContent = 'Reopen';
+    primaryButton.addEventListener('click', () => updateTaskStatus(task.id, 'in-progress'));
+    secondaryButton.textContent = 'Delete';
+    secondaryButton.addEventListener('click', () => deleteTask(task.id));
+  }
 
-  actions.append(nextButton, resetButton);
+  actions.append(primaryButton, secondaryButton);
   card.append(badge, title, meta, desc, actions);
   return card;
+}
+
+async function updateTaskStatus(id, status) {
+  const task = state.tasks.find((entry) => entry.id === id);
+  if (!task) return;
+  const prevStatus = task.status;
+  task.status = status;
+  if (prevStatus === 'in-progress' && status === 'done') {
+    state.xp += 12;
+    state.coins += 3;
+  }
+  if (status === 'todo') {
+    task.daysOverdue = 0;
+  }
+  await saveState();
+  renderApp();
+}
+
+async function deleteTask(id) {
+  state.tasks = state.tasks.filter((entry) => entry.id !== id);
+  await saveState();
+  renderApp();
 }
 
 function taskFilter(task) {
@@ -230,7 +266,55 @@ function renderStats() {
   summary.push(`Town morale is ${stats.townHappiness}%.`);
   summary.push(`Current level: ${stats.nextLevel}.`);
   summary.push(`${stats.completed}/${stats.total} tasks completed, ${stats.overdue} overdue quests.`);
+
+  if (stats.total === 0) {
+    summary.push('Add your first quest to start growing the town.');
+  }
+
   elements.questSummary.textContent = summary.join(' ');
+}
+
+function getQuestGroups() {
+  const categories = ['Farm', 'Greenhouse', 'Workshop', 'Market', 'Town Hall'];
+  return categories.map((building) => {
+    const tasks = state.tasks.filter((task) => task.building === building);
+    const completed = tasks.filter((task) => task.status === 'done').length;
+    return {
+      building,
+      total: tasks.length,
+      completed,
+      progress: tasks.length ? completed / tasks.length : 0,
+    };
+  });
+}
+
+function renderQuestBars() {
+  elements.questBars.innerHTML = '';
+  const groups = getQuestGroups();
+  groups.forEach((group) => {
+    const bar = document.createElement('button');
+    bar.type = 'button';
+    bar.className = 'quest-bar';
+    if (state.selectedBuilding === group.building) bar.classList.add('active');
+    bar.addEventListener('click', () => setSelectedBuilding(group.building));
+
+    const header = document.createElement('strong');
+    header.innerHTML = `${group.building} <span>${group.completed}/${group.total}</span>`;
+
+    const label = document.createElement('div');
+    label.textContent = group.total ? `${Math.round(group.progress * 100)}% complete` : 'No quests yet';
+    label.style.color = '#5b21b6';
+    label.style.fontSize = '0.92rem';
+
+    const track = document.createElement('div');
+    track.className = 'quest-progress';
+    const fill = document.createElement('span');
+    fill.style.width = `${group.total ? group.progress * 100 : 10}%`;
+    track.appendChild(fill);
+
+    bar.append(header, label, track);
+    elements.questBars.appendChild(bar);
+  });
 }
 
 async function moveTaskForward(id) {
@@ -304,9 +388,9 @@ async function advanceDay() {
   renderApp();
 }
 
-function setSelectedBuilding(building) {
+async function setSelectedBuilding(building) {
   state.selectedBuilding = state.selectedBuilding === building ? null : building;
-  saveState();
+  await saveState();
   renderApp();
 }
 
@@ -350,6 +434,7 @@ async function renderApp() {
   renderTimeBlocks();
   renderMap();
   renderStats();
+  renderQuestBars();
 }
 
 async function initialize() {
